@@ -25,10 +25,10 @@ struct list_head *q_new()
 void q_free(struct list_head *head)
 {
     if (!head) {
-        return 0;
+        return;
     }
 
-    struct list_head *current, tmp;
+    struct list_head *current, *tmp;
     list_for_each_safe (current, tmp, head) {
         element_t *node = list_entry(current, element_t, list);
         list_del(current);
