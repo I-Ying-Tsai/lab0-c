@@ -196,16 +196,68 @@ bool q_delete_dup(struct list_head *head)
 /* Swap every two adjacent nodes */
 void q_swap(struct list_head *head)
 {
+    if (!head || list_empty(head) || head->next == head->prev) {
+        return;
+    }
+
+    struct list_head *cur = head->next;
+
+    while (cur != head && cur->next != head) {
+        struct list_head *first = cur;
+        struct list_head *second = cur->next;
+
+        list_move(first, second);
+
+        cur = first->next;
+    }
     // https://leetcode.com/problems/swap-nodes-in-pairs/
 }
 
 /* Reverse elements in queue */
-void q_reverse(struct list_head *head) {}
+void q_reverse(struct list_head *head)
+{
+    if (!head || list_empty(head) || head->next == head->prev) {
+        return;
+    }
+
+    struct list_head *cur = head->prev;
+
+    while (cur != head) {
+        struct list_head *prev = cur->prev;
+        list_move(cur, head);
+        cur = prev;
+    }
+}
 
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    // https://leetcode.com/problems/reverse-nodes-in-k-group/
+    if (!head || list_empty(head) || k <= 1)
+        return;
+
+    struct list_head *cur, *next;
+    int count = 0;
+
+    list_for_each (cur, head)
+        count++;
+
+    if (count < k)
+        return;
+
+    cur = head->next;
+
+    while (count >= k) {
+        struct list_head *group_tail = cur;
+        int i = 0;
+
+        list_for_each_safe (cur, next, head) {
+            if (++i == k)
+                break;
+            list_move_tail(next, head);
+        }
+        cur = group_tail->next;
+        count -= k;
+    }
 }
 
 /* Sort elements of queue in ascending/descending order */
