@@ -95,6 +95,7 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
         strncpy(sp, node->value, bufsize - 1);
         sp[bufsize - 1] = '\0';
     }
+
     return node;
 }
 
@@ -114,6 +115,7 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
         strncpy(sp, node->value, bufsize - 1);
         sp[bufsize - 1] = '\0';
     }
+
     return node;
 }
 
@@ -220,29 +222,34 @@ void q_reverse(struct list_head *head)
         return;
     }
 
-    struct list_head *cur = head->prev;
+    struct list_head *cur = head, *tmp;
 
-    while (cur != head) {
-        struct list_head *prev = cur->prev;
-        list_move(cur, head);
-        cur = prev;
-    }
+    do {
+        tmp = cur->next;
+        cur->next = cur->prev;
+        cur->prev = tmp;
+        cur = tmp;
+    } while (cur != head);
+    return;
 }
 
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    if (!head || list_empty(head) || k <= 1)
+    if (!head || list_empty(head) || k <= 1) {
         return;
+    }
 
     struct list_head *cur, *next;
     int count = 0;
 
-    list_for_each (cur, head)
+    list_for_each (cur, head) {
         count++;
+    }
 
-    if (count < k)
+    if (count < k) {
         return;
+    }
 
     cur = head->next;
 
@@ -255,9 +262,14 @@ void q_reverseK(struct list_head *head, int k)
                 break;
             list_move_tail(next, head);
         }
+
+        group_tail->prev = cur->prev;
+        cur->prev->next = group_tail;
+
         cur = group_tail->next;
         count -= k;
     }
+    return;
 }
 
 /* Sort elements of queue in ascending/descending order */
