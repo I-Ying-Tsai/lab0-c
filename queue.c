@@ -10,11 +10,6 @@
  *   cppcheck-suppress nullPointer
  */
 
-static struct list_head *merge_sort(struct list_head *head, bool descend);
-static struct list_head *merge(struct list_head *l1,
-                               struct list_head *l2,
-                               bool descend);
-
 /* Create an empty queue */
 struct list_head *q_new()
 {
@@ -166,38 +161,42 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
-    if (!head || list_empty(head)) {
+    if (!head || list_empty(head))
         return false;
-    }
 
-    struct list_head *cur = head->next;
+    struct list_head *cur, *next;
     bool deleted = false;
 
-    while (cur != head || cur->next != head) {
-        // compare between cur->value and next_cur->value7
-        const element_t *node = list_entry(cur, element_t, list);
-        const element_t *next_node = list_entry(cur->next, element_t, list);
+    list_for_each_safe (cur, next, head) {
+        element_t *node = list_entry(cur, element_t, list);
 
-        if (strcmp(node->value, next_node->value) == 0) {
-            deleted = true;
-            const char *dup_value = node->value;
-            struct list_head *tmp;
+        if (next != head) {
+            const element_t *next_node = list_entry(next, element_t, list);
 
-            while (cur != head &&
-                   strcmp(list_entry(cur, element_t, list)->value, dup_value)) {
+            if (strcmp(node->value, next_node->value) == 0) {
+                deleted = true;
+                const char *dup_value = node->value;
+                struct list_head *tmp;
+
+                while (next != head &&
+                       strcmp(list_entry(next, element_t, list)->value,
+                              dup_value) == 0) {
+                    tmp = next->next;
+                    list_del(next);
+                    element_t *del_node = list_entry(next, element_t, list);
+                    free(del_node->value);
+                    free(del_node);
+                    next = tmp;
+                }
+
                 tmp = cur->next;
                 list_del(cur);
-                element_t *del_node = list_entry(cur, element_t, list);
-                free(del_node->value);
-                free(del_node);
+                free(node->value);
+                free(node);
                 cur = tmp;
             }
-        } else {
-            cur = cur->next;
         }
     }
-
-    // https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
     return deleted;
 }
 
@@ -242,64 +241,77 @@ void q_reverse(struct list_head *head)
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    if (!head || list_empty(head) || k <= 1) {
+    if (!head || list_empty(head) || k <= 1)
         return;
-    }
 
-    struct list_head *cur, *next;
+    struct list_head *cur, *group_start, *next;
     int count = 0;
 
-    list_for_each (cur, head) {
+    list_for_each (cur, head)
         count++;
-    }
 
-    if (count < k) {
+    if (count < k)
         return;
-    }
 
     cur = head->next;
 
     while (count >= k) {
-        struct list_head *group_tail = cur;
-        int i = 0;
+        group_start = cur;
+        struct list_head *prev_tail = group_start->prev;
 
-        list_for_each_safe (cur, next, head) {
-            if (++i == k)
-                break;
-            list_move_tail(next, head);
+        for (int i = 0; i < k; i++) {
+            next = cur->next;
+            list_move(cur, prev_tail);
+            cur = next;
         }
 
-        group_tail->prev = cur->prev;
-        cur->prev->next = group_tail;
+        group_start->next = cur;
+        if (cur)
+            cur->prev = group_start;
 
-        cur = group_tail->next;
         count -= k;
     }
-    return;
 }
 
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend)
+static struct list_head *merge(struct list_head *l1,
+                               struct list_head *l2,
+                               bool descend)
 {
-    if (!head || list_empty(head) || head->next == head->prev) {
-        return;
+    struct list_head dummy;
+    struct list_head *tail = &dummy;
+
+    while (l1 && l2) {
+        const element_t *e1 = list_entry(l1, element_t, list);
+        const element_t *e2 = list_entry(l2, element_t, list);
+
+        bool condition = descend ? (strcmp(e1->value, e2->value) < 0)
+                                 : (strcmp(e1->value, e2->value) > 0);
+
+        if (!condition || strcmp(e1->value, e2->value) == 0) {
+            tail->next = l1;
+            l1 = l1->next;
+        } else {
+            tail->next = l2;
+            l2 = l2->next;
+        }
+
+        tail->next->prev = tail;
+        tail = tail->next;
     }
 
-    head->prev->next = NULL;
-    struct list_head *sorted = merge_sort(head->next, descend);
+    tail->next = l1 ? l1 : l2;
+    if (tail->next)
+        tail->next->prev = tail;
 
-    LIST_HEAD(tmp);
-    list_splice_tail_init(sorted, &tmp);
-    list_splice_tail_init(&tmp, head);
+    return dummy.next;
 }
-
 static struct list_head *merge_sort(struct list_head *head, bool descend)
 {
     if (!head || !head->next)
         return head;
 
     struct list_head *slow = head, *fast = head->next;
-
     while (fast && fast->next) {
         slow = slow->next;
         fast = fast->next->next;
@@ -314,39 +326,30 @@ static struct list_head *merge_sort(struct list_head *head, bool descend)
     return merge(left, right, descend);
 }
 
-static struct list_head *merge(struct list_head *l1,
-                               struct list_head *l2,
-                               bool descend)
+void q_sort(struct list_head *head, bool descend)
 {
-    struct list_head dummy;
-    struct list_head *tail = &dummy;
-    dummy.next = NULL;
+    if (!head || list_empty(head) || head->next == head)
+        return;
 
-    while (l1 && l2) {
-        const element_t *e1 = list_entry(l1, element_t, list);
-        const element_t *e2 = list_entry(l2, element_t, list);
+    head->prev->next = NULL;
+    struct list_head *sorted = merge_sort(head->next, descend);
 
-        bool condition = descend ? (strcmp(e1->value, e2->value) > 0)
-                                 : (strcmp(e1->value, e2->value) < 0);
-
-        if (condition) {
-            tail->next = l1;
-            l1->prev = tail;
-            l1 = l1->next;
-        } else {
-            tail->next = l2;
-            l2->prev = tail;
-            l2 = l2->next;
-        }
-
-        tail = tail->next;
+    if (!sorted) {
+        head->next = head;
+        head->prev = head;
+        return;
     }
 
-    tail->next = l1 ? l1 : l2;
-    if (tail->next)
-        tail->next->prev = tail;
+    struct list_head *cur = sorted, *prev = head;
+    while (cur) {
+        cur->prev = prev;
+        prev->next = cur;
+        prev = cur;
+        cur = cur->next;
+    }
 
-    return dummy.next;
+    prev->next = head;
+    head->prev = prev;
 }
 
 /* Remove every node which has a node with a strictly less value anywhere to
@@ -382,25 +385,28 @@ int q_ascend(struct list_head *head)
  * the right side of it */
 int q_descend(struct list_head *head)
 {
-    if (!head || list_empty(head) || head->next == head->prev) {
+    if (!head || list_empty(head))
         return 0;
-    }
 
-    struct list_head *cur = head->prev, *prev_min = cur, *tmp;
+    struct list_head *cur = head->prev;
+    struct list_head *prev = cur->prev;
+    const element_t *max_elem = list_entry(cur, element_t, list);
     int count = 1;
 
-    list_for_each_safe (cur, tmp, head) {
-        element_t *e_cur = list_entry(cur, element_t, list);
-        const element_t *e_min = list_entry(prev_min, element_t, list);
+    while (prev != head) {
+        element_t *e = list_entry(prev, element_t, list);
+        struct list_head *tmp = prev->prev;
 
-        if (strcmp(e_cur->value, e_min->value) <= 0) {
-            prev_min = cur;
-            count++;
+        if (strcmp(e->value, max_elem->value) < 0) {
+            list_del(prev);
+            free(e->value);
+            free(e);
         } else {
-            list_del(cur);
-            free(e_cur->value);
-            free(e_cur);
+            max_elem = e;
+            count++;
         }
+
+        prev = tmp;
     }
 
     return count;
