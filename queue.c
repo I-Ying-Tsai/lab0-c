@@ -80,15 +80,11 @@ bool q_insert_tail(struct list_head *head, char *s)
         free(new_node);
         return false;
     }
-<<<<<<< HEAD
 
     if (list_empty(head)) {
         INIT_LIST_HEAD(&new_node->list);
     }
 
-=======
-    INIT_LIST_HEAD(&new_node->list);
->>>>>>> 6dd2021 (Implement sort, ascend, and descend functions)
     list_add_tail(&new_node->list, head);
     return true;
 }
@@ -287,7 +283,6 @@ void q_reverseK(struct list_head *head, int k)
 }
 
 /* Sort elements of queue in ascending/descending order */
-<<<<<<< HEAD
 static struct list_head *merge(struct list_head *l1,
                                struct list_head *l2,
                                bool descend)
@@ -320,32 +315,12 @@ static struct list_head *merge(struct list_head *l1,
 
     return dummy.next;
 }
-=======
-void q_sort(struct list_head *head, bool descend)
-{
-    if (!head || list_empty(head) || head->next == head->prev) {
-        return;
-    }
-
-    head->prev->next = NULL;
-    struct list_head *sorted = merge_sort(head->next, descend);
-
-    LIST_HEAD(tmp);
-    list_splice_tail_init(sorted, &tmp);
-    list_splice_tail_init(&tmp, head);
-}
-
->>>>>>> 6dd2021 (Implement sort, ascend, and descend functions)
 static struct list_head *merge_sort(struct list_head *head, bool descend)
 {
     if (!head || !head->next)
         return head;
 
     struct list_head *slow = head, *fast = head->next;
-<<<<<<< HEAD
-=======
-
->>>>>>> 6dd2021 (Implement sort, ascend, and descend functions)
     while (fast && fast->next) {
         slow = slow->next;
         fast = fast->next->next;
@@ -360,7 +335,6 @@ static struct list_head *merge_sort(struct list_head *head, bool descend)
     return merge(left, right, descend);
 }
 
-<<<<<<< HEAD
 void q_sort(struct list_head *head, bool descend)
 {
     if (!head || list_empty(head) || head->next == head)
@@ -385,48 +359,12 @@ void q_sort(struct list_head *head, bool descend)
 
     prev->next = head;
     head->prev = prev;
-=======
-static struct list_head *merge(struct list_head *l1,
-                               struct list_head *l2,
-                               bool descend)
-{
-    struct list_head dummy;
-    struct list_head *tail = &dummy;
-    dummy.next = NULL;
-
-    while (l1 && l2) {
-        const element_t *e1 = list_entry(l1, element_t, list);
-        const element_t *e2 = list_entry(l2, element_t, list);
-
-        bool condition = descend ? (strcmp(e1->value, e2->value) > 0)
-                                 : (strcmp(e1->value, e2->value) < 0);
-
-        if (condition) {
-            tail->next = l1;
-            l1->prev = tail;
-            l1 = l1->next;
-        } else {
-            tail->next = l2;
-            l2->prev = tail;
-            l2 = l2->next;
-        }
-
-        tail = tail->next;
-    }
-
-    tail->next = l1 ? l1 : l2;
-    if (tail->next)
-        tail->next->prev = tail;
-
-    return dummy.next;
->>>>>>> 6dd2021 (Implement sort, ascend, and descend functions)
 }
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
 int q_ascend(struct list_head *head)
 {
-<<<<<<< HEAD
     if (!head || list_empty(head))
         return 0;
 
@@ -454,38 +392,12 @@ int q_ascend(struct list_head *head)
     head->prev->next = head;
 
     return count;
-=======
-    if (!head || list_empty(head) || head->next == head->prev) {
-        return 0;
-    }
-
-    struct list_head *cur = head->prev, *prev_max = cur, *tmp;
-    int count = 1;
-
-    list_for_each_safe (cur, tmp, head) {
-        element_t *e_cur = list_entry(cur, element_t, list);
-        const element_t *e_max = list_entry(prev_max, element_t, list);
-
-        if (strcmp(e_cur->value, e_max->value) >= 0) {
-            prev_max = cur;
-            count++;
-        } else {
-            list_del(cur);
-            free(e_cur->value);
-            free(e_cur);
-        }
-    }
-
-    return count;
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
->>>>>>> 6dd2021 (Implement sort, ascend, and descend functions)
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
 int q_descend(struct list_head *head)
 {
-<<<<<<< HEAD
     if (!head || list_empty(head))
         return 0;
 
@@ -508,27 +420,6 @@ int q_descend(struct list_head *head)
         }
 
         prev = tmp;
-=======
-    if (!head || list_empty(head) || head->next == head->prev) {
-        return 0;
-    }
-
-    struct list_head *cur = head->prev, *prev_min = cur, *tmp;
-    int count = 1;
-
-    list_for_each_safe (cur, tmp, head) {
-        element_t *e_cur = list_entry(cur, element_t, list);
-        const element_t *e_min = list_entry(prev_min, element_t, list);
-
-        if (strcmp(e_cur->value, e_min->value) <= 0) {
-            prev_min = cur;
-            count++;
-        } else {
-            list_del(cur);
-            free(e_cur->value);
-            free(e_cur);
-        }
->>>>>>> 6dd2021 (Implement sort, ascend, and descend functions)
     }
 
     return count;
@@ -538,7 +429,6 @@ int q_descend(struct list_head *head)
  * order */
 int q_merge(struct list_head *head, bool descend)
 {
-<<<<<<< HEAD
     if (!head || list_empty(head) || list_is_singular(head))
         return 0;
 
@@ -574,7 +464,3 @@ int q_merge(struct list_head *head, bool descend)
     main_ctx->size = total_size;
     return main_ctx->size;
 }
-=======
-    return 0;
-}
->>>>>>> 6dd2021 (Implement sort, ascend, and descend functions)
