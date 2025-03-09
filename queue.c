@@ -4,6 +4,17 @@
 
 #include "queue.h"
 
+/* Notice: sometimes, Cppcheck would find the potential NULL pointer bugs,
+ * but some of them cannot occur. You can suppress them by adding the
+ * following line.
+ *   cppcheck-suppress nullPointer
+ */
+
+static struct list_head *merge_sort(struct list_head *head, bool descend);
+static struct list_head *merge(struct list_head *l1,
+                               struct list_head *l2,
+                               bool descend);
+
 /* Create an empty queue */
 struct list_head *q_new()
 {
@@ -74,6 +85,7 @@ bool q_insert_tail(struct list_head *head, char *s)
         INIT_LIST_HEAD(&new_node->list);
     }
 
+    INIT_LIST_HEAD(&new_node->list);
     list_add_tail(&new_node->list, head);
     return true;
 }
@@ -349,6 +361,75 @@ void q_sort(struct list_head *head, bool descend)
     prev->next = head;
     head->prev = prev;
 }
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head) || head->next == head->prev) {
+        return;
+    }
+
+    head->prev->next = NULL;
+    struct list_head *sorted = merge_sort(head->next, descend);
+
+    LIST_HEAD(tmp);
+    list_splice_tail_init(sorted, &tmp);
+    list_splice_tail_init(&tmp, head);
+}
+
+static struct list_head *merge_sort(struct list_head *head, bool descend)
+{
+    if (!head || !head->next)
+        return head;
+
+    struct list_head *slow = head, *fast = head->next;
+
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    struct list_head *mid = slow->next;
+    slow->next = NULL;
+
+    struct list_head *left = merge_sort(head, descend);
+    struct list_head *right = merge_sort(mid, descend);
+
+    return merge(left, right, descend);
+}
+
+static struct list_head *merge(struct list_head *l1,
+                               struct list_head *l2,
+                               bool descend)
+{
+    struct list_head dummy;
+    struct list_head *tail = &dummy;
+    dummy.next = NULL;
+
+    while (l1 && l2) {
+        const element_t *e1 = list_entry(l1, element_t, list);
+        const element_t *e2 = list_entry(l2, element_t, list);
+
+        bool condition = descend ? (strcmp(e1->value, e2->value) > 0)
+                                 : (strcmp(e1->value, e2->value) < 0);
+
+        if (condition) {
+            tail->next = l1;
+            l1->prev = tail;
+            l1 = l1->next;
+        } else {
+            tail->next = l2;
+            l2->prev = tail;
+            l2 = l2->next;
+        }
+
+        tail = tail->next;
+    }
+
+    tail->next = l1 ? l1 : l2;
+    if (tail->next)
+        tail->next->prev = tail;
+
+    return dummy.next;
+}
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
@@ -381,6 +462,29 @@ int q_ascend(struct list_head *head)
     head->prev->next = head;
 
     return count;
+    if (!head || list_empty(head) || head->next == head->prev) {
+        return 0;
+    }
+
+    struct list_head *cur = head->prev, *prev_max = cur, *tmp;
+    int count = 1;
+
+    list_for_each_safe (cur, tmp, head) {
+        element_t *e_cur = list_entry(cur, element_t, list);
+        const element_t *e_max = list_entry(prev_max, element_t, list);
+
+        if (strcmp(e_cur->value, e_max->value) >= 0) {
+            prev_max = cur;
+            count++;
+        } else {
+            list_del(cur);
+            free(e_cur->value);
+            free(e_cur);
+        }
+    }
+
+    return count;
+    // https://leetcode.com/problems/remove-nodes-from-linked-list/
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
@@ -412,44 +516,33 @@ int q_descend(struct list_head *head)
     }
 
     return count;
+    if (!head || list_empty(head) || head->next == head->prev) {
+        return 0;
+    }
+
+    struct list_head *cur = head->prev, *prev_min = cur, *tmp;
+    int count = 1;
+
+    list_for_each_safe (cur, tmp, head) {
+        element_t *e_cur = list_entry(cur, element_t, list);
+        const element_t *e_min = list_entry(prev_min, element_t, list);
+
+        if (strcmp(e_cur->value, e_min->value) <= 0) {
+            prev_min = cur;
+            count++;
+        } else {
+            list_del(cur);
+            free(e_cur->value);
+            free(e_cur);
+        }
+    }
+
+    return count;
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
  * order */
 int q_merge(struct list_head *head, bool descend)
 {
-    if (!head || list_empty(head) || list_is_singular(head))
-        return 0;
-
-    struct list_head *cur, *next;
-    queue_contex_t *main_ctx = list_entry(head->next, queue_contex_t, chain);
-    if (!main_ctx->q)
-        return 0;
-
-    int total_size = main_ctx->size;
-
-    list_for_each_safe (cur, next, head) {
-        queue_contex_t *ctx = list_entry(cur, queue_contex_t, chain);
-        if (ctx == main_ctx || !ctx->q || list_empty(ctx->q))
-            continue;
-
-        struct list_head *sub_queue = ctx->q;
-        while (!list_empty(sub_queue)) {
-            struct list_head *node = sub_queue->next;
-            list_del(node);
-            list_add_tail(node, main_ctx->q);
-        }
-
-        INIT_LIST_HEAD(ctx->q);
-        total_size += ctx->size;
-        ctx->size = 0;
-    }
-
-    main_ctx->q->prev->next = main_ctx->q;
-    main_ctx->q->next->prev = main_ctx->q;
-
-    q_sort(main_ctx->q, descend);
-
-    main_ctx->size = total_size;
-    return main_ctx->size;
+    return 0;
 }
