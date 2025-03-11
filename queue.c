@@ -75,7 +75,11 @@ bool q_insert_tail(struct list_head *head, char *s)
         free(new_node);
         return false;
     }
-    INIT_LIST_HEAD(&new_node->list);
+
+    if (list_empty(head)) {
+        INIT_LIST_HEAD(&new_node->list);
+    }
+
     list_add_tail(&new_node->list, head);
     return true;
 }
