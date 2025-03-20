@@ -65,7 +65,7 @@ typedef struct {
 } queue_chain_t;
 
 static queue_chain_t chain = {.size = 0};
-static queue_contex_t *current = NULL;
+queue_contex_t *current = NULL;
 
 /* How many times can queue operations fail */
 static int fail_limit = BIG_LIST_SIZE;
@@ -85,6 +85,54 @@ typedef enum {
 } position_t;
 /* Forward declarations */
 static bool q_show(int vlevel);
+
+void q_shuffle(struct list_head *head)
+{
+    if (!head || list_empty(head) || head->next == head->prev)
+        return;
+
+    int qsize = q_size(head);
+    if (qsize < 2)
+        return;
+
+    element_t **arr = malloc(qsize * sizeof(element_t *));
+    if (!arr)
+        return;
+
+    struct list_head *cur = head->next;
+    for (int i = 0; i < qsize; i++, cur = cur->next)
+        arr[i] = list_entry(cur, element_t, list);
+
+    // Fisher-Yates shuffle
+    for (int i = qsize - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        if (i != j) {
+            // **交換陣列中的兩個元素**
+            element_t *temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+    }
+
+    // **重新組裝洗牌後的鏈結串列**
+    INIT_LIST_HEAD(head);
+    for (int i = 0; i < qsize; i++)
+        list_add_tail(&arr[i]->list, head);
+
+    q_show(3);
+    free(arr);
+}
+
+static bool do_shuffle(int argc, char *argv[])
+{
+    if (!current || !current->q) {
+        report(1, "No queue created");
+        return false;
+    }
+
+    q_shuffle(current->q);
+    return true;
+}
 
 static bool do_free(int argc, char *argv[])
 {
@@ -1096,6 +1144,7 @@ static void console_init()
                 "");
     ADD_COMMAND(reverseK, "Reverse the nodes of the queue 'K' at a time",
                 "[K]");
+    ADD_COMMAND(shuffle, "Shuffle elements in queue", "str [n]");
     add_param("length", &string_length, "Maximum length of displayed string",
               NULL);
     add_param("malloc", &fail_probability, "Malloc failure probability percent",
